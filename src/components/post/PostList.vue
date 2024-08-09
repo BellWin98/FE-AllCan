@@ -1,13 +1,24 @@
 <template>
-    <div class="post-list-container">
-        <h1>게시글 목록</h1>
-        <ul class="post-list">
-            <li v-for="post in posts" :key="post.id" class="post-item">
-                <router-link class="post-link" :to="{ name: 'PostView', params: { id: post.id } }">{{ post.title
-                    }}</router-link>
-            </li>
-        </ul>
-    </div>
+    <v-container class="post-list-container">
+        <v-card outlined>
+            <v-card-title>
+                <h1>게시글 목록</h1>
+            </v-card-title>
+            <v-card-text>
+                <v-list>
+                    <v-list-item v-for="post in posts" :key="post.id"
+                        :to="{ name: 'PostView', params: { id: post.id } }" link>
+                        <v-list-item-content>
+                            <v-list-item-title>{{ post.title }}</v-list-item-title>
+                        </v-list-item-content>
+                        <v-list-item-icon>
+                            <v-icon>mdi-chevron-right</v-icon>
+                        </v-list-item-icon>
+                    </v-list-item>
+                </v-list>
+            </v-card-text>
+        </v-card>
+    </v-container>
 </template>
 
 <script>
@@ -32,29 +43,22 @@ export default {
 .post-list-container {
     max-width: 800px;
     margin: 50px auto;
-    padding: 2em;
-    background-color: #f9f9f9;
-    border-radius: 10px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
-.post-list {
-    list-style-type: none;
-    padding: 0;
+.v-card-title {
+    font-size: 1.5em;
+    font-weight: bold;
 }
 
-.post-item {
-    margin-bottom: 1em;
+.v-list-item {
+    transition: background-color 0.3s ease;
 }
 
-.post-link {
+.v-list-item:hover {
+    background-color: rgba(0, 123, 255, 0.1);
+}
+
+.v-icon {
     color: #007bff;
-    text-decoration: none;
-    font-size: 1.25em;
-    transition: color 0.3s ease;
-}
-
-.post-link:hover {
-    color: #0056b3;
 }
 </style>
