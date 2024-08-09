@@ -1,54 +1,141 @@
 <template>
-    <div class="signup-container">
-        <h1>회원가입</h1>
-        <form @submit.prevent="handleSubmit" class="signup-form">
-            <div class="form-group">
-                <label for="email">이메일</label>
-                <div class="input-group">
-                    <input v-model="email" id="email" required />
-                    <button type="button" @click="sendVerificationCode" class="btn">코드 전송</button>
-                </div>
-            </div>
-            <div class="form-group" v-if="codeSent">
-                <label for="verificationCode">Verification Code</label>
-                <div class="input-group">
-                    <input v-model="verificationCode" id="verificationCode" required />
-                    <button type="button" @click="verifyCode" class="btn">Verify</button>
-                </div>
-            </div>
-            <div class="form-group">
-                <label for="password">비밀번호</label>
-                <input type="password" v-model="password" id="password" required />
-            </div>
-            <div class="form-group">
-                <label for="nickname">닉네임</label>
-                <div class="input-group">
-                    <input v-model="nickname" id="nickname" required />
-                    <button type="button" @click="checkNickname" class="btn">중복확인</button>
-                </div>
-                <p v-if="nicknameTaken" class="error">이미 등록된 닉네임입니다.</p>
-            </div>
-            <button type="submit" class="btn">가입하기</button>
-        </form>
-    </div>
+    <v-container class="signup-container">
+        <v-row justify="center">
+            <v-col cols="12" md="8" lg="6">
+                <v-card class="pa-5" outlined>
+                    <v-card-title class="justify-center">회원가입</v-card-title>
+                    <v-card-text>
+                        <v-form @submit.prevent="handleSubmit">
+                            <!-- 이메일 입력 필드 및 중복 확인 버튼 -->
+                            <v-row>
+                                <v-col cols="8">
+                                    <v-text-field v-model="email" label="이메일" outlined required
+                                        append-outer-icon="mdi-email"></v-text-field>
+                                </v-col>
+                                <v-col cols="4">
+                                    <v-btn :disabled="emailChecked || timer > 0" color="primary" block
+                                        @click="checkEmail">
+                                        이메일 중복 확인
+                                    </v-btn>
+                                </v-col>
+                            </v-row>
+
+                            <!-- 이메일 인증코드 전송 및 검증 필드 -->
+                            <v-row v-if="emailChecked">
+                                <v-col cols="8">
+                                    <v-text-field v-model="verificationCode" label="인증 코드" outlined required
+                                        append-outer-icon="mdi-check" :disabled="!codeSent"></v-text-field>
+                                </v-col>
+                                <v-col cols="4">
+                                    <v-btn :disabled="timer > 0" color="primary" block @click="sendVerificationCode">
+                                        인증코드 전송
+                                        <span v-if="timer > 0">({{ timer }}s)</span>
+                                    </v-btn>
+                                </v-col>
+                            </v-row>
+
+                            <!-- 이메일 인증 버튼 -->
+                            <v-btn v-if="codeSent" color="success" block class="mb-4" @click="verifyCode">
+                                이메일 인증
+                            </v-btn>
+
+                            <!-- 비밀번호 입력 필드 -->
+                            <v-text-field v-model="password" label="비밀번호" type="password" outlined
+                                required></v-text-field>
+
+                            <!-- 닉네임 입력 필드 및 중복 확인 버튼 -->
+                            <v-row>
+                                <v-col cols="8">
+                                    <v-text-field v-model="nickname" label="닉네임" outlined required
+                                        append-outer-icon="mdi-magnify"></v-text-field>
+                                </v-col>
+                                <v-col cols="4">
+                                    <v-btn color="primary" block @click="checkNickname">
+                                        중복 확인
+                                    </v-btn>
+                                </v-col>
+                            </v-row>
+
+                            <!-- 닉네임 중복 확인 결과 -->
+                            <v-alert v-if="nicknameTaken" type="error" dense>
+                               이미 등록된 닉네임입니다.
+                            </v-alert>
+
+                            <!-- 가입하기 버튼 -->
+                            <v-btn type="submit" color="primary" block>가입하기</v-btn>
+                        </v-form>
+                    </v-card-text>
+                </v-card>
+            </v-col>
+        </v-row>
+    </v-container>
 </template>
 
 <script>
 export default {
     data() {
         return {
-            email: '',
-            verificationCode: '',
+            email: "",
+            verificationCode: "",
             codeSent: false,
-            password: '',
-            nickname: '',
-            nicknameTaken: false
+            emailChecked: false,
+            timer: 0,
+            password: "",
+            nickname: "",
+            nicknameTaken: false,
+            countdown: null,
         };
     },
     methods: {
-        sendVerificationCode() {
-            // 이메일 인증 코드를 전송하는 로직을 구현합니다.
-            this.codeSent = true;
+        isValidEmail(email) {
+            const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            return emailPattern.test(email);
+        },
+        async checkEmail() {
+
+            if (!this.isValidEmail(this.email)) {
+                alert("이메일 형식이 맞지 않습니다.");
+                return; // 이메일 형식이 잘못되었으므로 API 요청을 중단합니다.
+            }
+            try {
+                const data = await this.$store.dispatch('checkEmail', this.email);
+                console.log(data);
+                if (data.status === 200){
+                    this.emailChecked = true;
+                    alert("사용 가능한 이메일입니다.");
+                }
+            } catch (error){
+                console.error(error);
+                alert(error.response.data.error.message);
+            }
+        },
+        async sendVerificationCode() {
+            try {
+                if (confirm("입력한 이메일로 인증번호를 발송하시겠습니까?")){
+                    this.startTimer();
+                    const data = await this.$store.dispatch('sendVerificationCode', this.email);
+                    if (data.status === 200){
+                        this.codeSent = true;
+                    }
+                }
+            } catch (error){
+                console.error(error);
+                alert("인증코드 발송 중 오류가 발생했습니다.");
+            }
+            
+        },
+        startTimer() {
+            this.timer = 180; // 3분 = 180초
+            this.countdown = setInterval(() => {
+                this.timer--;
+                if (this.timer <= 0) {
+                    clearInterval(this.countdown);
+                    this.timer = 0;
+                    this.codeSent = false;
+                    alert("유효시간이 만료되었습니다. 다시 시도해주세요.");
+                    window.location.reload();
+                }
+            }, 1000);
         },
         verifyCode() {
             // 인증 코드를 검증하는 로직을 구현합니다.
@@ -60,70 +147,12 @@ export default {
         handleSubmit() {
             // 회원가입 폼 제출 로직을 구현합니다.
         },
-        socialLogin(provider) {
-            console.log(provider);
-            // 소셜 로그인 로직을 구현합니다.
-        }
-    }
+    },
 };
 </script>
 
 <style scoped>
 .signup-container {
-    max-width: 400px;
     margin: 50px auto;
-    padding: 2em;
-    background-color: #f9f9f9;
-    border-radius: 10px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    text-align: center;
-}
-
-.signup-form .form-group {
-    margin-bottom: 1.5em;
-}
-
-.signup-form label {
-    display: block;
-    margin-bottom: 0.5em;
-    font-weight: bold;
-}
-
-.signup-form input {
-    width: 100%;
-    padding: 0.75em;
-    border: 1px solid #ccc;
-    border-radius: 5px;
-    font-size: 1em;
-}
-
-.input-group {
-    display: flex;
-    justify-content: space-between;
-}
-
-.input-group input {
-    flex-grow: 1;
-    margin-right: 0.5em;
-}
-
-.btn {
-    padding: 0.75em 1.5em;
-    background-color: #333;
-    color: white;
-    border: none;
-    border-radius: 5px;
-    font-size: 1em;
-    cursor: pointer;
-    transition: background-color 0.3s ease;
-}
-
-.btn:hover {
-    background-color: #555;
-}
-
-.error {
-    color: red;
-    font-size: 0.875em;
 }
 </style>
