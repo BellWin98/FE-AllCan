@@ -113,14 +113,27 @@ export default createStore({
       }
     },
 
-    async sendVerificationCode(context, email) {
+    async sendCode(context, email) {
       try {
         const response = await apiClient.get("/api/auth/send-code", {
           params: { email }
         });
         return response;
       } catch (error) {
-        console.error('인증코드 전송 실패: ', error);
+        console.error(error);
+        throw error;
+      }
+    },
+
+    async verifyCode(context, email, code){
+      try {
+        const response = await apiClient.get("/api/auth/verify-code", {
+          params: { email, code }
+        });
+
+        return response;
+      } catch (error){
+        console.error(error);
         throw error;
       }
     },

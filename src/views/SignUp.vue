@@ -27,10 +27,10 @@
                                         append-outer-icon="mdi-check" :disabled="!codeSent"></v-text-field>
                                 </v-col>
                                 <v-col cols="4">
-                                    <v-btn :disabled="timer > 0" color="primary" block @click="sendVerificationCode">
+                                    <v-btn :disabled="timer > 0" color="primary" block @click="sendCode">
                                         인증코드 전송
-                                        <span v-if="timer > 0">({{ timer }}s)</span>
                                     </v-btn>
+                                    <span v-if="timer > 0">(유효시간: {{ timer }}초)</span>
                                 </v-col>
                             </v-row>
 
@@ -79,6 +79,7 @@ export default {
             verificationCode: "",
             codeSent: false,
             emailChecked: false,
+            codeVerified: false,
             timer: 0,
             password: "",
             nickname: "",
@@ -92,11 +93,17 @@ export default {
             return emailPattern.test(email);
         },
         async checkEmail() {
+            
+            if (!this.email) {
+                alert("이메일을 입력해주세요.");
+                return;
+            }
 
             if (!this.isValidEmail(this.email)) {
                 alert("이메일 형식이 맞지 않습니다.");
                 return; // 이메일 형식이 잘못되었으므로 API 요청을 중단합니다.
             }
+
             try {
                 const data = await this.$store.dispatch('checkEmail', this.email);
                 console.log(data);
@@ -109,11 +116,11 @@ export default {
                 alert(error.response.data.error.message);
             }
         },
-        async sendVerificationCode() {
+        async sendCode() {
             try {
                 if (confirm("입력한 이메일로 인증번호를 발송하시겠습니까?")){
                     this.startTimer();
-                    const data = await this.$store.dispatch('sendVerificationCode', this.email);
+                    const data = await this.$store.dispatch('sendCode', this.email);
                     if (data.status === 200){
                         this.codeSent = true;
                     }
@@ -122,7 +129,23 @@ export default {
                 console.error(error);
                 alert("인증코드 발송 중 오류가 발생했습니다.");
             }
-            
+        },
+        async verifyCode() {
+            if (!this.verificationCode) {
+                alert("인증코드를 입력하세요.");
+                return;
+            }
+
+            try {
+                const data = await this.$store.dispatch('verifyCode', this.email, this.verificationCode);
+                if (data.status === 200){
+                    this.codeVerified = true;
+                    alert(data);
+                    clearInterval(this.countdown);
+                }
+            } catch (error) {
+                console.error(error);
+            }
         },
         startTimer() {
             this.timer = 180; // 3분 = 180초
@@ -136,9 +159,6 @@ export default {
                     window.location.reload();
                 }
             }, 1000);
-        },
-        verifyCode() {
-            // 인증 코드를 검증하는 로직을 구현합니다.
         },
         checkNickname() {
             // 닉네임 중복 확인 로직을 구현합니다.
