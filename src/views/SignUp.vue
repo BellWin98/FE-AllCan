@@ -62,11 +62,6 @@
                                 </v-col>
                             </v-row>
 
-                            <!-- 닉네임 중복 확인 결과 -->
-                            <v-alert v-if="nicknameTaken" type="error" dense>
-                               이미 등록된 닉네임입니다.
-                            </v-alert>
-
                             <!-- 가입하기 버튼 -->
                             <v-btn :disabled="!canSubmit" type="submit" color="primary" block>가입하기</v-btn>
                         </v-form>
