@@ -13,7 +13,11 @@
                                         append-outer-icon="mdi-email"></v-text-field>
                                 </v-col>
                                 <v-col cols="4">
-                                    <v-btn :disabled="emailChecked || timer > 0" color="primary" block
+                                    <!-- <v-btn :disabled="emailChecked || timer > 0" color="primary" block
+                                        @click="checkEmail">
+                                        이메일 중복 확인
+                                    </v-btn> -->
+                                    <v-btn color="primary" block
                                         @click="checkEmail">
                                         이메일 중복 확인
                                     </v-btn>
@@ -21,7 +25,7 @@
                             </v-row>
 
                             <!-- 이메일 인증코드 전송 및 검증 필드 -->
-                            <v-row v-if="emailChecked">
+                            <!-- <v-row v-if="emailChecked">
                                 <v-col cols="8">
                                     <v-text-field v-model="verificationCode" label="인증 코드" outlined required
                                         append-outer-icon="mdi-check" :disabled="!codeSent"></v-text-field>
@@ -32,16 +36,18 @@
                                     </v-btn>
                                     <span v-if="timer > 0">(유효시간: {{ timer }}초)</span>
                                 </v-col>
-                            </v-row>
+                            </v-row> -->
 
                             <!-- 이메일 인증 버튼 -->
-                            <v-btn v-if="codeSent" color="success" block class="mb-4" @click="verifyCode">
+                            <!-- <v-btn v-if="codeSent" color="success" block class="mb-4" @click="verifyCode">
                                 이메일 인증
-                            </v-btn>
+                            </v-btn> -->
 
                             <!-- 비밀번호 입력 필드 -->
-                            <v-text-field v-model="password" label="비밀번호" type="password" outlined
-                                required></v-text-field>
+                            <v-text-field v-model="password" label="비밀번호" type="password" outlined required></v-text-field>
+
+                            <!-- 비밀번호 입력 확인 -->
+                            <v-text-field v-model="confirmPassword" label="비밀번호 확인" type="password" outlined required :error-messages="passwordError"></v-text-field>
 
                             <!-- 닉네임 입력 필드 및 중복 확인 버튼 -->
                             <v-row>
@@ -62,7 +68,7 @@
                             </v-alert>
 
                             <!-- 가입하기 버튼 -->
-                            <v-btn type="submit" color="primary" block>가입하기</v-btn>
+                            <v-btn :disabled="!canSubmit" type="submit" color="primary" block>가입하기</v-btn>
                         </v-form>
                     </v-card-text>
                 </v-card>
@@ -82,10 +88,26 @@ export default {
             codeVerified: false,
             timer: 0,
             password: "",
+            confirmPassword: "",
+            passwordError: "",
             nickname: "",
-            nicknameTaken: false,
+            nicknameChecked: false,
             countdown: null,
         };
+    },
+    computed: {
+        // 회원가입 버튼 활성화 조건
+        canSubmit(){
+            return this.emailChecked && !this.passwordError && this.nicknameChecked && this.password && this.confirmPassword;
+        }
+    },
+    watch: {
+        confirmPassword() {
+            this.checkPassword();
+        },
+        password() {
+            this.checkPassword();
+        }
     },
     methods: {
         isValidEmail(email) {
@@ -108,12 +130,46 @@ export default {
                 const data = await this.$store.dispatch('checkEmail', this.email);
                 console.log(data);
                 if (data.status === 200){
-                    this.emailChecked = true;
                     alert("사용 가능한 이메일입니다.");
+                    this.emailChecked = true;
                 }
             } catch (error){
                 console.error(error);
-                alert(error.response.data.error.message);
+                alert(error.response.data.errorMessage);
+            }
+        },
+        async checkNickname() {
+            const nicknamePattern = /^[a-zA-Z0-9가-힣]+$/;  // 유효한 닉네임은 영문, 숫자, 한글만 허용
+            if (!this.nickname) {
+                alert("닉네임을 입력해주세요.");
+                return;
+            }
+            if (this.nickname.length > 10){
+                alert("닉네임은 10자를 초과할 수 없습니다.");
+                return;
+            }
+            if (!nicknamePattern.test(this.nickname)){
+                alert("닉네임에 유효하지 않은 문자가 포함되어 있습니다. 영문, 숫자, 한글만 사용 가능합니다.");
+                return;
+            }
+
+            try {
+                const data = await this.$store.dispatch('checkNickname', this.nickname);
+                console.log(data);
+                if (data.status === 200){
+                    this.nicknameChecked = true;
+                    alert("사용 가능한 닉네임입니다.");
+                }
+            } catch (error){
+                console.error(error);
+                alert(error.response.data.errorMessage);
+            }
+        },
+        checkPassword() {
+            if (this.confirmPassword && this.password !== this.confirmPassword) {
+                this.passwordError = "비밀번호가 일치하지 않습니다.";
+            } else {
+                this.passwordError = "";
             }
         },
         async sendCode() {
@@ -142,6 +198,7 @@ export default {
                     this.codeVerified = true;
                     alert(data);
                     clearInterval(this.countdown);
+                    this.emailChecked = true;
                 }
             } catch (error) {
                 console.error(error);
@@ -160,12 +217,24 @@ export default {
                 }
             }, 1000);
         },
-        checkNickname() {
-            // 닉네임 중복 확인 로직을 구현합니다.
-            // 예시: this.nicknameTaken = true; // 닉네임이 이미 존재하는 경우
-        },
-        handleSubmit() {
-            // 회원가입 폼 제출 로직을 구현합니다.
+        async handleSubmit() {
+            const signUpData = {
+                email: this.email,
+                password: this.password,
+                nickname: this.nickname,
+            };
+
+            try {
+                const data = await this.$store.dispatch('signUp', signUpData);
+                console.log(data);
+                if (data.status === 201){
+                    alert("회원가입에 성공했습니다.");
+                    this.$router.push({name: 'HomeView'});
+                }
+            } catch (error){
+                console.error(error);
+                alert(error.response.data.errorMessage);
+            }
         },
     },
 };

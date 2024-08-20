@@ -113,6 +113,18 @@ export default createStore({
       }
     },
 
+    async checkNickname(context, nickname) {
+      try {
+        const response = await apiClient.get("/api/auth/check-nickname", {
+          params: { nickname }
+        });
+        return response;
+      } catch (error) {
+        console.error('닉네임 검증 오류: ', error);
+        throw error;
+      }
+    },
+
     async sendCode(context, email) {
       try {
         const response = await apiClient.get("/api/auth/send-code", {
@@ -138,13 +150,14 @@ export default createStore({
       }
     },
 
-    async signUp({ commit }, memberData) {
+    async signUp(context, signUpData) {
       try {
-        const response = await apiClient.post("/sign-up", memberData);
-        commit("setMember", response.data);
-        return response.data;
+        const response = await apiClient.post("/api/auth", signUpData);
+        // commit("setMember", response.data);
+        return response;
       } catch (error) {
         console.error("회원가입 에러: ", error);
+        throw error;
       }
     },
 
