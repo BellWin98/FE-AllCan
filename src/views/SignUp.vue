@@ -224,7 +224,7 @@ export default {
                 console.log(data);
                 if (data.status === 201){
                     alert("회원가입에 성공했습니다.");
-                    this.$router.push({name: 'HomeView'});
+                    this.$router.push({name: 'LoginView'});
                 }
             } catch (error){
                 console.error(error);

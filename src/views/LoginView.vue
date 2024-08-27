@@ -41,8 +41,22 @@ export default {
         };
     },
     methods: {
-        handleSubmit() {
-            this.$store.dispatch("login", this.authData);
+        async handleSubmit() {
+            try {
+                const response = await this.$store.dispatch("login", this.authData);
+                console.log(response);
+
+                if (response.status === 200){
+                    localStorage.setItem('accessToken', response.data.accessToken);
+                    localStorage.setItem('refreshToken', response.data.refreshToken);
+                    alert("로그인에 성공하였습니다.");
+                    this.$router.push({name: 'HomeView'});
+                }
+
+            } catch (error){
+                console.error(error);
+                alert(error.response.data.errorMessage);
+            }
         },
         socialLogin(provider) {
             // 소셜 로그인 로직 구현

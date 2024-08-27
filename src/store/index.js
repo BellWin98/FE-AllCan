@@ -161,9 +161,9 @@ export default createStore({
       }
     },
 
-    async login({ commit }, memberData) {
+    async login({ commit }, authData) {
       try {
-        const response = await apiClient.post("/login", memberData);
+        const response = await apiClient.post("/login", authData);
         commit("setMember", response.data);
         return response.data;
       } catch (error) {
